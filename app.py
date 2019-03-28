@@ -112,11 +112,11 @@ def get_weather_for_all():
 @app.route('/signup', methods = ['GET', 'POST'])
 def signup_user():
 	print('inside post')
-	resp = session.execute("INSERT INTO smartcart.user(name,email,password) VALUES(%s, %s, %s)", (request.args['name'], request.args['email'], request.args['password']))
+	resp = session.execute("INSERT INTO smartcart.user(id,name,email,password) VALUES(%s, %s, %s, %s)", (request.args['id'],.args['name'], request.args['email'], request.args['password']))
 	return jsonify({'message': '1'}), 201
 
 #get product from database
-@app.route('/product/<int:id>', methods=['GET'])
+@app.route('/product/<int:itemid>', methods=['GET'])
 def get_product_by_id(itemid):
 
 	#data = [x for x in cities if x['id'] == id]

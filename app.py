@@ -10,7 +10,7 @@ app = Flask(__name__)
 
 API_KEY = 'gvak92gbyp6qfk2tpdp5wv32'
 
-basee_url = 'http://api.walmartlabs.com/v1/items/{itemid}?format=json&apiKey={API_KEY}'
+basee_url = 'http://api.walmartlabs.com/v1/items/{itemId}?format=json&apiKey={API_KEY}'
 base_url = 'http://api.openweathermap.org/data/2.5/weather?q={city}&units={units}&APPID={API_KEY}'
 
 @app.route('/')
@@ -113,38 +113,88 @@ def get_weather_for_all():
 def signup_user():
 	print('inside post')
 	resp = session.execute("INSERT INTO smartcart.user(name,email,password) VALUES(%s, %s, %s)", (request.args['name'], request.args['email'], request.args['password']))
-	resp['allowed']
 	return jsonify({'message': '1'}), 201
 
 #get product from database
 @app.route('/product/<int:id>', methods=['GET'])
-def get_product_by_id(id):
+def get_product_by_id(itemid):
 
 	#data = [x for x in cities if x['id'] == id]
-	rows = session.execute("""SELECT * FROM smartcart.product WHERE id=%(id)s""",{'id': id})
+	#comment
+	rows = session.execute("""SELECT * FROM smartcart.product WHERE itemid=%(itemid)s""",{'itemid': itemid})
 	data = None
 	for row in rows:
 		data = row
-	print(data, file=sys.stderr)
+
 	product_url = basee_url.format(itemid = data.itemid, API_KEY = API_KEY)
 
 	resp = requests.get(product_url)
 
 	if resp.ok:
 		# print(resp.json())
-		print(data)
+
 		res = resp.json()
 		item = {
 			'itemid': itemid,
 			'name': data.name,
-			'price': data.price,
+			'price': res['salePrice'],
 			'description': data.description
 		}
-		print(item)
+
 
 		return jsonify(item), resp.status_code
 	else:
 		return resp.reason
+
+
+#insert product into database
+@app.route('/item', methods= ['POST'])
+def create_product():
+	print('inside create product post request')
+
+	product_url = basee_url.format(itemid = request.form['itemid'], API_KEY= API_KEY)
+	resp = request.post(product_url,data = {'itemid':request.form['itemid']}).json()
+	print('after product call')
+	count_rows = session.execute("SELECT COUNT(*) FROM smartcart.product")
+
+	for c in count_rows:
+		last_id = c.count
+	last_id += 1
+	print(last_id, file=sys.stderr)
+	resp = session.execute("INSERT INTO smartcart.product(id,itemid,name,price,description) VALUES(%s, %s, %s, %s, %s)", (last_id,request.form['itemid'], request.form['name'], resp['salePrice'], resp['shortDescription']))
+	print(resp, file=sys.stderr)
+	print('done')
+
+	return jsonify({'message': 'added'}), 201
+
+#delete product from database by itemid
+@app.route('/product/<int:id>', methods = ['DELETE'])
+def delete_product_by_id(id):
+	if not id:
+		return jsonify({'Error': 'The id is needed to delete'}), 400
+	print('before delete')
+	resp = session.execute("""DELETE FROM smartcart.product WHERE id={}""".format(id))
+	print(resp)
+	print('after delete')
+
+	return jsonify({'message': 'deleted: /weather/{}'.format(id)}), 200
+
+#edit product into database
+@app.route('/product/<int:id>', methods = ['PUT'])
+def update_product(id):
+
+	print('inside put')
+
+	if not request.form or not 'itemid' in request.form:
+		return jsonify({'Error': 'Record does not exist'}), 404
+
+	print('inside update')
+	rows = session.execute("""UPDATE smartcart.prodcut SET name=%(name)s WHERE id=%(id)s""", {'name': request.form['name'], 'id': id})
+
+	print('after update')
+
+	return jsonify({'message':'updated: /prodcut/{}'.format(id)}), 200
+
 
 #________________________________________________________________________________________________________________________________________________________________
 @app.route('/weather', methods = ['POST'])

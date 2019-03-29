@@ -23,7 +23,7 @@ def hello():
 @app.route('/signup', methods = ['GET', 'POST'])
 def signup_user():
 	print('inside post')
-	resp = session.execute("INSERT INTO smartcart.user(id,name,email,password) VALUES(%s, %s, %s, %s)", (int(request.args['id']),request.args['name'], request.args['email'], request.args['password']))
+	resp = session.execute("INSERT INTO smartcart.user(id,name,email,password) VALUES(%s, %s, %s, %s)", (int(request.args['id']),request.args['name'], request.args['email'], hash(request.args['password'])))
 	return jsonify({'message': '1'}), 201
 
 #login call
